@@ -13,10 +13,10 @@
       }
       body {
         margin: 0;
-        padding: 40px;
+        padding: 32px;
       }
       main {
-        max-width: 880px;
+        max-width: 980px;
         margin: 0 auto;
       }
       h1 {
@@ -35,6 +35,41 @@
         background: #fff;
         padding: 22px;
       }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .source {
+        border: 1px solid #d9dde5;
+        border-radius: 8px;
+        padding: 14px;
+        background: #fbfcfd;
+      }
+      .source strong {
+        display: block;
+        font-size: 15px;
+        margin-bottom: 8px;
+      }
+      .meta {
+        color: #68707d;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+        background: #e9edf3;
+        color: #384150;
+      }
+      .pill.on {
+        background: #dff3e8;
+        color: #1f6844;
+      }
       .status {
         display: inline-flex;
         align-items: center;
@@ -48,6 +83,10 @@
         border-radius: 50%;
         background: #2f9d62;
       }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -55,9 +94,18 @@
       <h1>Plutus Wire</h1>
       <p>Local-first intelligence wire for your own X timeline.</p>
       <section class="panel">
-        <div class="status"><span class="dot"></span><span>Scaffold ready</span></div>
-        <p>The review surface will show selected sources, run health, and signal cards here.</p>
+        <div class="status"><span class="dot"></span><span id="runtime-status">Loading local status</span></div>
+        <p id="updated-at">No local configuration loaded yet.</p>
+      </section>
+      <section class="panel">
+        <h2>Sources</h2>
+        <div id="sources" class="grid"></div>
+      </section>
+      <section class="panel">
+        <h2>Last Run</h2>
+        <p class="meta" id="last-run">No run manifest loaded yet.</p>
       </section>
     </main>
+    <script src="./app.js"></script>
   </body>
 </html>

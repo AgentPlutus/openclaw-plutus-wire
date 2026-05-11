@@ -20,6 +20,8 @@ This repository is in early scaffold state. The first working target is v0.1:
 - OpenCLI dependency and adapter layout.
 - M1 OpenCLI adapters for health, home tab detection, timelines, likes, and
   bookmarks.
+- M2 local source configuration written to
+  `~/.openclaw/state/plutus-wire/config.json`.
 - Local-first cron runner.
 - Following and For You as default sources.
 - Detected home tabs, likes, and bookmarks as optional sources.
@@ -73,6 +75,7 @@ During v0.1 development:
 git clone https://github.com/AgentPlutus/openclaw-plutus-wire.git
 cd openclaw-plutus-wire
 python3 scripts/install_opencli_adapters.py
+python3 scripts/plutus_wire_setup.py --detect-home-tabs
 python3 scripts/plutus_wire_tick.py --dry-run
 ```
 
@@ -92,6 +95,29 @@ opencli plutus-wire timeline --type following --limit 20 --format json
 The installer defaults to a copied install, which is safest for OpenCLI package
 resolution. Use `--mode symlink` only for local development when you have
 validated that your OpenCLI runtime resolves symlinked adapters correctly.
+
+To configure sources:
+
+```bash
+python3 scripts/plutus_wire_setup.py --detect-home-tabs
+python3 scripts/plutus_wire_setup.py --enable ai
+python3 scripts/plutus_wire_setup.py --enable bookmarks
+python3 scripts/plutus_wire_setup.py --likes-handle your_handle --enable likes
+python3 scripts/plutus_wire_setup.py --disable ai
+```
+
+The setup command writes:
+
+```text
+~/.openclaw/state/plutus-wire/config.json
+~/.openclaw/state/plutus-wire/review/config.json
+```
+
+Serve the local review UI with:
+
+```bash
+python3 scripts/serve_review.py
+```
 
 ## Source Defaults
 
@@ -117,6 +143,7 @@ SKILL.md
 README.md
 scripts/
   plutus_wire_tick.py
+  plutus_wire_setup.py
   install_opencli_adapters.py
   install_openclaw_cron.py
   uninstall_openclaw_cron.py

@@ -20,6 +20,18 @@ review/
 cloud/
 ```
 
+Source setup writes the main config at:
+
+```text
+~/.openclaw/state/plutus-wire/config.json
+```
+
+The review UI reads a mirrored copy from:
+
+```text
+~/.openclaw/state/plutus-wire/review/config.json
+```
+
 ## Never Store
 
 - Browser cookies.

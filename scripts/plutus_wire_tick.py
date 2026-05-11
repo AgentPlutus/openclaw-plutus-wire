@@ -9,6 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from lib.config import (
+    enabled_source_names,
+    load_config,
+    source_config_hash,
+    source_handle,
+)
 from lib.opencli_call import find_opencli, opencli_version, run_opencli_json
 from lib.source_registry import normalize_sources, opencli_args_for_source, source_by_name
 from lib.store import DEFAULT_STATE_DIR, ensure_state_dirs, write_json
@@ -22,6 +28,7 @@ def build_manifest(
     state_dir: Path,
     sources: list[str],
     *,
+    config: dict[str, Any],
     dry_run: bool,
     limit: int,
     handle: str | None,
@@ -34,12 +41,17 @@ def build_manifest(
         "opencli_path": find_opencli(),
         "opencli_version": opencli_version(),
         "adapter_version": "0.1.0a0",
+        "source_config_hash": source_config_hash(config),
         "sources": [
             {
                 "name": name,
                 "label": source_by_name(name).label,
                 "adapter_command": source_by_name(name).adapter_command,
-                "opencli_args": opencli_args_for_source(name, limit=limit, handle=handle),
+                "opencli_args": opencli_args_for_source(
+                    name,
+                    limit=limit,
+                    handle=source_handle(config, name, handle),
+                ),
                 "status": "planned" if dry_run else "not_implemented",
             }
             for name in sources
@@ -54,6 +66,8 @@ def build_manifest(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run one Plutus Wire ingest tick.")
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--config", type=Path, help="Config file path. Defaults to <state-dir>/config.json.")
+    parser.add_argument("--ignore-config", action="store_true", help="Use built-in defaults and CLI sources only.")
     parser.add_argument("--source", action="append", dest="sources", help="Source name or comma-separated names.")
     parser.add_argument("--limit", type=int, default=80, help="Per-source adapter limit.")
     parser.add_argument("--handle", help="X handle for sources that require it, such as likes.")
@@ -75,10 +89,16 @@ def main() -> int:
             print("plutus-wire: another tick is already running")
             return 0
 
-        sources = normalize_sources(args.sources)
+        config = {} if args.ignore_config else load_config(state_dir)
+        if args.config:
+            from lib.store import read_json
+
+            config = read_json(args.config.expanduser())
+        sources = normalize_sources(args.sources) if args.sources else enabled_source_names(config)
         manifest = build_manifest(
             state_dir,
             sources,
+            config=config,
             dry_run=args.dry_run or not args.execute_adapters,
             limit=args.limit,
             handle=args.handle,

@@ -29,12 +29,14 @@ developer affordances; the product runtime is OpenClaw plus OpenCLI.
 1. Check OpenClaw and OpenCLI availability.
 2. Install or refresh OpenCLI adapters with `scripts/install_opencli_adapters.py`
    only when the user asks to modify local OpenCLI state.
-3. Confirm source configuration.
-4. Run `scripts/plutus_wire_tick.py --dry-run` before installing cron.
-5. Use `scripts/install_openclaw_cron.py` to print the planned OpenClaw cron.
-6. Only run `scripts/install_openclaw_cron.py --apply` when the user explicitly
+3. Configure sources with `scripts/plutus_wire_setup.py --detect-home-tabs`.
+4. Use explicit setup commands to enable optional sources:
+   `--enable ai`, `--enable bookmarks`, or `--likes-handle <handle> --enable likes`.
+5. Run `scripts/plutus_wire_tick.py --dry-run` before installing cron.
+6. Use `scripts/install_openclaw_cron.py` to print the planned OpenClaw cron.
+7. Only run `scripts/install_openclaw_cron.py --apply` when the user explicitly
    asks to install the cron job.
-7. Review local output before enabling any cloud handoff.
+8. Review local output before enabling any cloud handoff.
 
 ## References
 

@@ -47,6 +47,18 @@ opencli plutus-wire likes --handle <handle> --limit 80 --format json
 
 `home-tabs` is detection-only. It should not be treated as an ingest source.
 
+## Local Config
+
+Source setup writes:
+
+```text
+~/.openclaw/state/plutus-wire/config.json
+```
+
+Default enabled sources are `following` and `for-you`. AI, likes, and bookmarks
+remain disabled until the user enables them. Likes must include a handle before
+it can be enabled.
+
 ## Public Positioning
 
 Say:
