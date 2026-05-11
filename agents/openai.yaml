@@ -1,0 +1,4 @@
+name: plutus-wire
+display_name: Plutus Wire
+short_description: Local-first OpenClaw intelligence wire for your X timeline.
+default_prompt: Configure or run Plutus Wire for my local X timeline.

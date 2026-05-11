@@ -1,0 +1,8 @@
+Plutus Wire
+Copyright 2026 Agent Plutus contributors
+
+Plutus Wire is an OpenClaw skill that depends on OpenCLI for browser bridge
+functionality. OpenCLI is authored by jackwener and distributed separately as
+@jackwener/opencli under the Apache License 2.0.
+
+This project is not a fork of OpenCLI.

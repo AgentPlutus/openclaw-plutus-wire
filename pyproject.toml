@@ -1,0 +1,10 @@
+[project]
+name = "openclaw-plutus-wire"
+version = "0.1.0a0"
+description = "OpenClaw skill for turning your own X timeline into an outside intelligence wire."
+requires-python = ">=3.10"
+license = "Apache-2.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]

@@ -1,0 +1,26 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+node_modules/
+dist/
+coverage/
+
+# Local state and captured artifacts must stay outside git.
+state/
+data/
+artifacts/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.jsonl
+
+# Local credentials and user configuration.
+.env
+.env.*
+config.local.json
+secrets.*
