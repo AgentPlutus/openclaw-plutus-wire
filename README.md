@@ -18,6 +18,8 @@ This repository is in early scaffold state. The first working target is v0.1:
 
 - OpenClaw skill entrypoint.
 - OpenCLI dependency and adapter layout.
+- M1 OpenCLI adapters for health, home tab detection, timelines, likes, and
+  bookmarks.
 - Local-first cron runner.
 - Following and For You as default sources.
 - Detected home tabs, likes, and bookmarks as optional sources.
@@ -70,12 +72,26 @@ During v0.1 development:
 ```bash
 git clone https://github.com/AgentPlutus/openclaw-plutus-wire.git
 cd openclaw-plutus-wire
+python3 scripts/install_opencli_adapters.py
 python3 scripts/plutus_wire_tick.py --dry-run
 ```
 
 When the OpenClaw skill is ready, installation should copy or link this folder
 into the user's OpenClaw workspace skills directory and then create an OpenClaw
 cron job through `scripts/install_openclaw_cron.py --apply`.
+
+To install adapters into OpenCLI during development:
+
+```bash
+python3 scripts/install_opencli_adapters.py --apply
+opencli validate plutus-wire
+opencli plutus-wire home-tabs --format json
+opencli plutus-wire timeline --type following --limit 20 --format json
+```
+
+The installer defaults to a copied install, which is safest for OpenCLI package
+resolution. Use `--mode symlink` only for local development when you have
+validated that your OpenCLI runtime resolves symlinked adapters correctly.
 
 ## Source Defaults
 
@@ -101,11 +117,17 @@ SKILL.md
 README.md
 scripts/
   plutus_wire_tick.py
+  install_opencli_adapters.py
   install_openclaw_cron.py
   uninstall_openclaw_cron.py
   serve_review.py
   lib/
 opencli-clis/plutus-wire/
+  health.js
+  home-tabs.js
+  timeline.js
+  likes.js
+  bookmarks.js
 prompts/
 references/
 assets/site/

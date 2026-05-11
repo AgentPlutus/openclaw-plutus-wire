@@ -16,7 +16,7 @@ def build_command(every: str) -> list[str]:
     message = (
         "Run one Plutus Wire local ingest tick. Execute exactly: "
         f"cd {shlex.quote(str(REPO_ROOT))} && "
-        "python3 scripts/plutus_wire_tick.py. "
+        "python3 scripts/plutus_wire_tick.py --execute-adapters. "
         "If it fails, report the failing stage and last relevant lines only. "
         "Never print secrets, cookies, tokens, or local browser credentials."
     )

@@ -5,13 +5,12 @@ from __future__ import annotations
 
 import argparse
 import fcntl
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from lib.opencli_call import find_opencli, opencli_version
-from lib.source_registry import normalize_sources, source_by_name
+from lib.opencli_call import find_opencli, opencli_version, run_opencli_json
+from lib.source_registry import normalize_sources, opencli_args_for_source, source_by_name
 from lib.store import DEFAULT_STATE_DIR, ensure_state_dirs, write_json
 
 
@@ -19,7 +18,14 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def build_manifest(state_dir: Path, sources: list[str], dry_run: bool) -> dict[str, Any]:
+def build_manifest(
+    state_dir: Path,
+    sources: list[str],
+    *,
+    dry_run: bool,
+    limit: int,
+    handle: str | None,
+) -> dict[str, Any]:
     return {
         "run_id": datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
         "started_at": utc_now(),
@@ -33,6 +39,7 @@ def build_manifest(state_dir: Path, sources: list[str], dry_run: bool) -> dict[s
                 "name": name,
                 "label": source_by_name(name).label,
                 "adapter_command": source_by_name(name).adapter_command,
+                "opencli_args": opencli_args_for_source(name, limit=limit, handle=handle),
                 "status": "planned" if dry_run else "not_implemented",
             }
             for name in sources
@@ -48,7 +55,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run one Plutus Wire ingest tick.")
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
     parser.add_argument("--source", action="append", dest="sources", help="Source name or comma-separated names.")
+    parser.add_argument("--limit", type=int, default=80, help="Per-source adapter limit.")
+    parser.add_argument("--handle", help="X handle for sources that require it, such as likes.")
     parser.add_argument("--dry-run", action="store_true", help="Write a manifest without calling adapters.")
+    parser.add_argument("--execute-adapters", action="store_true", help="Call OpenCLI adapters and write raw JSON.")
     return parser.parse_args()
 
 
@@ -66,12 +76,34 @@ def main() -> int:
             return 0
 
         sources = normalize_sources(args.sources)
-        manifest = build_manifest(state_dir, sources, args.dry_run)
+        manifest = build_manifest(
+            state_dir,
+            sources,
+            dry_run=args.dry_run or not args.execute_adapters,
+            limit=args.limit,
+            handle=args.handle,
+        )
         run_path = state_dir / "runs" / f"{manifest['run_id']}.manifest.json"
+        raw_dir = state_dir / "raw" / manifest["run_id"]
+        if args.execute_adapters and not args.dry_run:
+            for source_entry in manifest["sources"]:
+                name = source_entry["name"]
+                output_path = raw_dir / f"{name}.json"
+                try:
+                    rc = run_opencli_json(source_entry["opencli_args"], output_path=output_path)
+                except Exception as exc:
+                    source_entry["status"] = "adapter_error"
+                    source_entry["error"] = str(exc)
+                    continue
+                source_entry["raw_path"] = str(output_path)
+                source_entry["status"] = "ok" if rc == 0 else "adapter_error"
+                source_entry["returncode"] = rc
+        elif not args.dry_run:
+            manifest["note"] = "adapter execution requires --execute-adapters in M1"
         write_json(run_path, manifest)
         print(f"plutus-wire: wrote {run_path}")
-        if not args.dry_run:
-            print("plutus-wire: adapter execution is intentionally not implemented in M0")
+        if not args.execute_adapters:
+            print("plutus-wire: adapter execution skipped")
         return 0
 
 

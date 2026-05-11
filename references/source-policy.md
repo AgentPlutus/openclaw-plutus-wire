@@ -33,6 +33,20 @@ Out of v0.1:
 - If a source returns auth, captcha, rate-limit, or network errors, mark only
   that source as degraded and keep the rest of the run recoverable.
 
+## M1 Adapter Commands
+
+```bash
+opencli plutus-wire health --format json
+opencli plutus-wire home-tabs --format json
+opencli plutus-wire timeline --type following --limit 80 --format json
+opencli plutus-wire timeline --type for-you --limit 80 --format json
+opencli plutus-wire timeline --type ai --limit 80 --format json
+opencli plutus-wire bookmarks --limit 80 --format json
+opencli plutus-wire likes --handle <handle> --limit 80 --format json
+```
+
+`home-tabs` is detection-only. It should not be treated as an ingest source.
+
 ## Public Positioning
 
 Say:

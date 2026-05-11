@@ -21,6 +21,17 @@ Plutus Wire owns adapters under:
 opencli-clis/plutus-wire/
 ```
 
+Install them into OpenCLI with:
+
+```bash
+python3 scripts/install_opencli_adapters.py --apply
+opencli validate plutus-wire
+```
+
+The installer links or copies only the `plutus-wire` site directory. Shared
+helper modules are nested under that directory to avoid colliding with other
+OpenCLI adapters.
+
 OpenCLI owns:
 
 - browser bridge runtime
