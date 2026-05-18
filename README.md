@@ -24,6 +24,8 @@ This repository is in early scaffold state. The first working target is v0.1:
   `~/.openclaw/state/plutus-wire/config.json`.
 - M3 SQLite local store with raw artifact ingest, post sightings, retweet
   events, and per-source checkpoints.
+- M4 cron stability layer with health preflight, recoverable failure
+  classification, source-local backoff, and DB status.
 - Local-first cron runner.
 - Following and For You as default sources.
 - Detected home tabs, likes, and bookmarks as optional sources.
@@ -81,6 +83,7 @@ python3 scripts/plutus_wire_setup.py --detect-home-tabs
 python3 scripts/plutus_wire_tick.py --dry-run
 python3 scripts/plutus_wire_tick.py --execute-adapters
 python3 scripts/plutus_wire_db_status.py
+python3 scripts/install_openclaw_cron.py --every 5m
 ```
 
 When the OpenClaw skill is ready, installation should copy or link this folder
@@ -128,6 +131,18 @@ The SQLite store lives at:
 ```text
 ~/.openclaw/state/plutus-wire/db/plutus_wire.sqlite
 ```
+
+Install the OpenClaw cron only after local smoke passes:
+
+```bash
+python3 scripts/install_openclaw_cron.py --every 5m
+python3 scripts/install_openclaw_cron.py --every 5m --disabled --apply
+```
+
+Live ticks exit successfully for recoverable states such as network loss,
+logged-out browser state, captcha/challenge, rate limits, and source-local
+adapter errors. These are written to the run manifest and SQLite
+`source_runtime` table instead of crashing the whole schedule.
 
 ## Source Defaults
 

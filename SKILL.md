@@ -54,3 +54,10 @@ developer affordances; the product runtime is OpenClaw plus OpenCLI.
 signals, translate when configured, and produce reviewable cards. Do not import
 Agent Plutus macro-writer rules as default behavior until the backfill has been
 reviewed and the rules are extracted into a stable public contract.
+
+## Cron Stability
+
+Live ticks run health preflight by default. Treat `network_unavailable`,
+`auth_required`, `captcha_or_challenge`, `rate_limited`, `adapter_error`, and
+`skipped_backoff` as recoverable runtime states. Keep OpenClaw cron short and
+repeatable; do not add a long-lived ingest daemon.

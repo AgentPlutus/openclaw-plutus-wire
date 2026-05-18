@@ -29,17 +29,21 @@ def opencli_version() -> str | None:
     return output or None
 
 
-def run_opencli_json(args: list[str], *, output_path: Path, timeout: int = 300) -> int:
+def run_opencli_capture(args: list[str], *, timeout: int = 300) -> subprocess.CompletedProcess[str]:
     exe = find_opencli()
     if not exe:
         raise FileNotFoundError("opencli not found in PATH")
-    completed = subprocess.run(
+    return subprocess.run(
         [exe, *args],
         check=False,
         capture_output=True,
         text=True,
         timeout=timeout,
     )
+
+
+def run_opencli_json(args: list[str], *, output_path: Path, timeout: int = 300) -> int:
+    completed = run_opencli_capture(args, timeout=timeout)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(completed.stdout, encoding="utf-8")
     if completed.stderr:

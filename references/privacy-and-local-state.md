@@ -53,6 +53,10 @@ Raw artifacts may contain timeline text and public profile metadata visible to
 the logged-in user. They must stay local by default and must not be committed.
 The SQLite store is also local state and must not be committed.
 
+Runtime failure records such as `source_runtime.last_error` must not contain
+cookies, tokens, browser profile paths, or gateway credentials. Keep errors
+short and operational.
+
 ## Derived Artifacts
 
 Derived artifacts should keep source provenance while reducing raw exposure:

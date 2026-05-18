@@ -3,8 +3,11 @@ import json
 from lib.local_store import (
     connect_db,
     ingest_raw_artifact,
+    is_backoff_active,
     parse_opencli_output,
     record_run,
+    record_source_failure,
+    record_source_success,
     store_summary,
 )
 
@@ -95,4 +98,26 @@ def test_ingest_raw_artifact_populates_posts_sightings_and_checkpoint(tmp_path):
     assert summary["counts"]["retweet_events"] == 1
     assert summary["checkpoints"][0]["source"] == "following"
     assert summary["checkpoints"][0]["newest_post_id"] == "2"
+    conn.close()
+
+
+def test_source_runtime_records_backoff_and_success(tmp_path):
+    state_dir = tmp_path / "state"
+    conn = connect_db(state_dir)
+    record_source_failure(
+        conn,
+        source="following",
+        run_id="r1",
+        state="network_unavailable",
+        error="network down",
+    )
+    runtime = is_backoff_active(conn, "following", now="2000-01-01T00:00:00Z")
+    assert runtime is not None
+    assert runtime["state"] == "network_unavailable"
+
+    record_source_success(conn, "following", "r2")
+    summary = store_summary(conn)
+    assert summary["source_runtime"][0]["state"] == "ok"
+    assert summary["source_runtime"][0]["failure_count"] == 0
+    assert summary["source_runtime"][0]["backoff_until"] is None
     conn.close()

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def utc_now() -> str:
@@ -120,6 +120,16 @@ def init_db(conn: sqlite3.Connection) -> None:
             updated_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS source_runtime (
+            source TEXT PRIMARY KEY,
+            state TEXT NOT NULL,
+            failure_count INTEGER NOT NULL,
+            backoff_until TEXT,
+            last_error TEXT,
+            last_run_id TEXT,
+            updated_at TEXT NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_posts_posted_at ON posts(posted_at);
         CREATE INDEX IF NOT EXISTS idx_sightings_source_observed ON sightings(source, observed_at);
         CREATE INDEX IF NOT EXISTS idx_sightings_post_id ON sightings(post_id);
@@ -165,6 +175,16 @@ def store_summary(conn: sqlite3.Connection) -> dict[str, Any]:
             """
         )
     ]
+    source_runtime = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT source, state, failure_count, backoff_until, last_error, last_run_id, updated_at
+            FROM source_runtime
+            ORDER BY source
+            """
+        )
+    ]
     return {
         "schema_version": conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0],
         "counts": {
@@ -174,9 +194,97 @@ def store_summary(conn: sqlite3.Connection) -> dict[str, Any]:
             "sightings": count("sightings"),
             "retweet_events": count("retweet_events"),
             "checkpoints": count("checkpoints"),
+            "source_runtime": count("source_runtime"),
         },
         "checkpoints": checkpoints,
+        "source_runtime": source_runtime,
     }
+
+
+def get_source_runtime(conn: sqlite3.Connection, source: str) -> dict[str, Any] | None:
+    row = conn.execute(
+        """
+        SELECT source, state, failure_count, backoff_until, last_error, last_run_id, updated_at
+        FROM source_runtime
+        WHERE source = ?
+        """,
+        (source,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def is_backoff_active(conn: sqlite3.Connection, source: str, now: str | None = None) -> dict[str, Any] | None:
+    runtime = get_source_runtime(conn, source)
+    if not runtime:
+        return None
+    backoff_until = runtime.get("backoff_until")
+    if not backoff_until:
+        return None
+    current = now or utc_now()
+    return runtime if backoff_until > current else None
+
+
+def record_source_success(conn: sqlite3.Connection, source: str, run_id: str) -> None:
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO source_runtime(
+            source, state, failure_count, backoff_until, last_error, last_run_id, updated_at
+        )
+        VALUES (?, 'ok', 0, NULL, NULL, ?, ?)
+        """,
+        (source, run_id, utc_now()),
+    )
+    conn.commit()
+
+
+def record_source_failure(
+    conn: sqlite3.Connection,
+    *,
+    source: str,
+    run_id: str,
+    state: str,
+    error: str,
+) -> dict[str, Any]:
+    existing = get_source_runtime(conn, source)
+    previous_count = int(existing["failure_count"]) if existing and existing.get("state") == state else 0
+    failure_count = previous_count + 1
+    backoff_minutes = backoff_minutes_for(state, failure_count)
+    backoff_until = add_minutes(utc_now(), backoff_minutes) if backoff_minutes else None
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO source_runtime(
+            source, state, failure_count, backoff_until, last_error, last_run_id, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (source, state, failure_count, backoff_until, error, run_id, utc_now()),
+    )
+    conn.commit()
+    return {
+        "state": state,
+        "failure_count": failure_count,
+        "backoff_until": backoff_until,
+        "last_error": error,
+    }
+
+
+def backoff_minutes_for(state: str, failure_count: int) -> int:
+    if state == "auth_required":
+        return 30
+    if state == "captcha_or_challenge":
+        return 60
+    if state == "rate_limited":
+        return min(120, 30 * max(1, failure_count))
+    if state == "network_unavailable":
+        return min(60, 5 * (2 ** max(0, failure_count - 1)))
+    if state == "adapter_error":
+        return min(30, 5 * max(1, failure_count))
+    return 5
+
+
+def add_minutes(value: str, minutes: int) -> str:
+    base = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return (base + timedelta(minutes=minutes)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def ingest_raw_artifact(

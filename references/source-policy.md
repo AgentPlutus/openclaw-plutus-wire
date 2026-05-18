@@ -32,6 +32,7 @@ Out of v0.1:
 - Write adapter version and OpenCLI version into run manifests.
 - If a source returns auth, captcha, rate-limit, or network errors, mark only
   that source as degraded and keep the rest of the run recoverable.
+- Do not retry a source while its source-local backoff is active.
 
 ## M1 Adapter Commands
 
