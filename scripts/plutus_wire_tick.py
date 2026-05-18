@@ -25,6 +25,13 @@ from lib.local_store import (
     record_source_success,
 )
 from lib.opencli_call import find_opencli, opencli_version, run_opencli_capture, run_opencli_json
+from lib.cloud_handoff import (
+    build_cloud_handoff,
+    cloud_config_from_dict,
+    upload_cloud_package,
+    write_cloud_handoff,
+)
+from lib.processor import build_review_package, write_review_package
 from lib.runtime_status import SKIPPED_BACKOFF, classify_failure, classify_health
 from lib.source_registry import normalize_sources, opencli_args_for_source, source_by_name
 from lib.store import DEFAULT_STATE_DIR, ensure_state_dirs, write_json
@@ -86,6 +93,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-ingest-db", action="store_true", help="Do not ingest raw adapter output into SQLite.")
     parser.add_argument("--skip-health", action="store_true", help="Skip OpenCLI health preflight.")
     parser.add_argument("--health-timeout", type=int, default=90, help="Seconds for OpenCLI health preflight.")
+    parser.add_argument("--process", action="store_true", help="Build local review cards after ingest.")
+    parser.add_argument("--process-limit", type=int, default=120, help="Maximum input posts for processor.")
+    parser.add_argument("--cloud-handoff", action="store_true", help="Build opt-in cloud handoff package.")
+    parser.add_argument("--cloud-apply", action="store_true", help="Upload cloud handoff when config allows it.")
     return parser.parse_args()
 
 
@@ -246,8 +257,44 @@ def main() -> int:
                             state="adapter_error",
                             error=ingest_result.get("error") or "ingest failed",
                         )
+            if args.process:
+                if conn is None:
+                    manifest["review"] = {"status": "skipped", "reason": "--no-ingest-db"}
+                else:
+                    review_package = build_review_package(
+                        conn,
+                        run_id=manifest["run_id"],
+                        limit=args.process_limit,
+                    )
+                    review_paths = write_review_package(state_dir, review_package)
+                    manifest["review"] = {
+                        "status": "ok",
+                        "card_count": review_package["card_count"],
+                        "latest_package_path": str(review_paths["latest_package_path"]),
+                        "latest_cards_path": str(review_paths["latest_cards_path"]),
+                    }
+                    if args.cloud_handoff:
+                        try:
+                            add_cloud_handoff(
+                                state_dir=state_dir,
+                                config=config,
+                                manifest=manifest,
+                                review_package=review_package,
+                                conn=conn,
+                                apply=args.cloud_apply,
+                            )
+                        except Exception as exc:
+                            manifest["cloud_handoff"] = {
+                                "status": "error",
+                                "error": str(exc)[:1000],
+                            }
+            elif args.cloud_handoff:
+                manifest["cloud_handoff"] = {
+                    "status": "skipped",
+                    "reason": "--cloud-handoff requires --process in tick",
+                }
         elif not args.dry_run:
-            manifest["note"] = "adapter execution requires --execute-adapters in M1"
+            manifest["note"] = "adapter execution requires --execute-adapters"
         write_json(run_path, manifest)
         if conn is not None:
             record_run(conn, manifest, run_path)
@@ -260,6 +307,48 @@ def main() -> int:
 
 def read_text_if_exists(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def add_cloud_handoff(
+    *,
+    state_dir: Path,
+    config: dict[str, Any],
+    manifest: dict[str, Any],
+    review_package: dict[str, Any],
+    conn,
+    apply: bool,
+) -> None:
+    from lib.local_store import store_summary
+
+    cloud_config = cloud_config_from_dict(config)
+    handoff = build_cloud_handoff(
+        config=cloud_config,
+        run_manifest=manifest,
+        review_package=review_package,
+        db_summary=store_summary(conn),
+    )
+    paths = write_cloud_handoff(state_dir, handoff)
+    cloud_manifest = handoff["manifest"]
+    manifest["cloud_handoff"] = {
+        "status": cloud_manifest["upload_status"],
+        "manifest_id": cloud_manifest["manifest_id"],
+        "mode": cloud_manifest["mode"],
+        "upload_allowed": cloud_manifest["upload_allowed"],
+        "latest_manifest_path": str(paths["latest_manifest_path"]),
+        "latest_package_path": str(paths["latest_package_path"]),
+    }
+    if cloud_manifest["upload_allowed"] and apply:
+        result = upload_cloud_package(
+            endpoint=cloud_config.endpoint or "",
+            manifest_id=cloud_manifest["manifest_id"],
+            package=handoff["package"],
+        )
+        cloud_manifest["upload_status"] = "uploaded" if result.get("ok") else "upload_error"
+        cloud_manifest["upload_result"] = result
+        write_json(paths["manifest_path"], cloud_manifest)
+        write_json(paths["latest_manifest_path"], cloud_manifest)
+        manifest["cloud_handoff"]["status"] = cloud_manifest["upload_status"]
+        manifest["cloud_handoff"]["upload_result"] = result
 
 
 if __name__ == "__main__":

@@ -13,10 +13,10 @@
       }
       body {
         margin: 0;
-        padding: 32px;
+        padding: 24px;
       }
       main {
-        max-width: 980px;
+        max-width: 1120px;
         margin: 0 auto;
       }
       h1 {
@@ -87,6 +87,67 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 12px;
       }
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 16px;
+      }
+      .brief-card {
+        border: 1px solid #d9dde5;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fbfcfd;
+      }
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .card-header h3 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.35;
+      }
+      .score {
+        flex: 0 0 auto;
+        border-radius: 6px;
+        background: #16181d;
+        color: #fff;
+        padding: 4px 7px;
+        font-size: 12px;
+      }
+      .provenance {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 12px 0;
+      }
+      .evidence {
+        display: grid;
+        gap: 6px;
+      }
+      .evidence a {
+        color: #315a92;
+        font-size: 13px;
+        text-decoration: none;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding: 16px;
+        }
+        .panel {
+          padding: 16px;
+        }
+        .card-header {
+          display: block;
+        }
+        .score {
+          display: inline-flex;
+          margin-top: 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -106,8 +167,16 @@
         <p class="meta" id="last-run">No run manifest loaded yet.</p>
       </section>
       <section class="panel">
+        <h2>Review Cards</h2>
+        <div id="cards" class="cards"></div>
+      </section>
+      <section class="panel">
         <h2>Local Store</h2>
         <p class="meta" id="db-status">No SQLite status loaded yet.</p>
+      </section>
+      <section class="panel">
+        <h2>Cloud Handoff</h2>
+        <p class="meta" id="cloud-status">Cloud handoff is off unless explicitly enabled.</p>
       </section>
     </main>
     <script src="./app.js"></script>

@@ -40,6 +40,15 @@ def make_handler(state_dir: Path):
                 finally:
                     conn.close()
                 return
+            if self.path == "/data/latest-cards.json":
+                self._serve_json(state_dir / "review" / "latest-cards.json")
+                return
+            if self.path == "/data/latest-package.json":
+                self._serve_json(state_dir / "review" / "latest-package.json")
+                return
+            if self.path == "/data/latest-cloud-manifest.json":
+                self._serve_json(state_dir / "cloud" / "latest-manifest.json")
+                return
             super().do_GET()
 
         def _serve_json(self, path: Path) -> None:

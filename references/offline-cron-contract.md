@@ -12,6 +12,7 @@ OpenClaw cron.
 - Per-run manifest.
 - Raw artifact first, database ingest second, processing third.
 - Processor failure must not block the next ingest run.
+- Cloud handoff failure must not block local ingest or local review.
 
 ## Local Store
 
@@ -29,6 +30,7 @@ The store should maintain:
 - `sightings`
 - `retweet_events`
 - `checkpoints`
+- `source_runtime`
 
 Checkpoint updates are source-local. A successful Following run should update
 only the Following checkpoint, even if another optional source fails.
@@ -59,6 +61,13 @@ Before live adapter execution, `plutus_wire_tick.py --execute-adapters` runs a
 health preflight unless `--skip-health` is passed. A failed preflight marks all
 planned sources as recoverably skipped and exits 0 so the next cron tick can
 retry.
+
+## Processing And Cloud
+
+Default cron should run `plutus_wire_tick.py --execute-adapters --process` so
+the local review UI has fresh cards. Cloud handoff is not part of the default
+upload path. Add `--cloud-handoff --cloud-apply` only after the user has
+enabled cloud config and accepted the upload mode.
 
 ## Resume Behavior
 

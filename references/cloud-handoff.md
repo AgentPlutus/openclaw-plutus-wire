@@ -1,7 +1,7 @@
 # Cloud Handoff
 
-Cloud handoff is a future opt-in capability. It must not be part of the default
-local cron path.
+Cloud handoff is an opt-in capability. It must not be part of the default local
+cron upload path.
 
 ## Product Goal
 
@@ -18,6 +18,10 @@ Before any upload:
 3. The redaction filter runs locally.
 4. A manifest is written locally.
 5. The upload request references the manifest id.
+
+`scripts/plutus_wire_cloud_handoff.py` and
+`scripts/plutus_wire_tick.py --cloud-handoff` may build local manifest/package
+files. They upload only with an explicit apply path.
 
 ## Redaction Filter
 
@@ -46,6 +50,23 @@ It may keep:
 - `redacted-daily`: upload redacted daily feed package.
 - `full-visible-feed`: upload selected visible public post content; requires a
   separate explicit confirmation.
+
+## Local Artifacts
+
+Cloud handoff writes:
+
+- `cloud/latest-manifest.json`
+- `cloud/latest-package.json`
+- `cloud/<manifest_id>.manifest.json`
+- `cloud/<manifest_id>.package.json`
+
+The manifest includes `manifest_id`, package hash, package byte count, mode,
+run id, and upload status. The package is mode-specific:
+
+- `manifest-only`: run metadata and review summary only.
+- `redacted-daily`: redacted review package with evidence text removed.
+- `full-visible-feed`: review package with visible post text preserved after
+  explicit confirmation.
 
 ## Server Boundary
 

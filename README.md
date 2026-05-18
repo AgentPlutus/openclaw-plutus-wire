@@ -26,6 +26,9 @@ This repository is in early scaffold state. The first working target is v0.1:
   events, and per-source checkpoints.
 - M4 cron stability layer with health preflight, recoverable failure
   classification, source-local backoff, and DB status.
+- M5 deterministic processor that turns SQLite posts into local review cards.
+- M6 opt-in cloud handoff with local redaction, manifest/package files, and
+  explicit upload gates.
 - Local-first cron runner.
 - Following and For You as default sources.
 - Detected home tabs, likes, and bookmarks as optional sources.
@@ -81,7 +84,7 @@ cd openclaw-plutus-wire
 python3 scripts/install_opencli_adapters.py
 python3 scripts/plutus_wire_setup.py --detect-home-tabs
 python3 scripts/plutus_wire_tick.py --dry-run
-python3 scripts/plutus_wire_tick.py --execute-adapters
+python3 scripts/plutus_wire_tick.py --execute-adapters --process
 python3 scripts/plutus_wire_db_status.py
 python3 scripts/install_openclaw_cron.py --every 5m
 ```
@@ -123,6 +126,7 @@ The setup command writes:
 Serve the local review UI with:
 
 ```bash
+python3 scripts/plutus_wire_process.py
 python3 scripts/serve_review.py
 ```
 
@@ -143,6 +147,36 @@ Live ticks exit successfully for recoverable states such as network loss,
 logged-out browser state, captcha/challenge, rate limits, and source-local
 adapter errors. These are written to the run manifest and SQLite
 `source_runtime` table instead of crashing the whole schedule.
+
+The default cron plan runs local ingest plus `processor_v0`. It does not upload
+feed data.
+
+To prepare an opt-in cloud handoff:
+
+```bash
+python3 scripts/plutus_wire_setup.py \
+  --cloud-enable \
+  --cloud-mode redacted-daily \
+  --cloud-endpoint https://example.com/plutus-wire/ingest
+python3 scripts/plutus_wire_tick.py --execute-adapters --process --cloud-handoff
+python3 scripts/plutus_wire_cloud_handoff.py
+```
+
+The cloud command writes redacted local manifest/package files under:
+
+```text
+~/.openclaw/state/plutus-wire/cloud/
+```
+
+Uploads require both enabled cloud config and an explicit apply path:
+
+```bash
+python3 scripts/plutus_wire_cloud_handoff.py --apply
+python3 scripts/install_openclaw_cron.py --include-cloud-handoff --cloud-apply
+```
+
+`full-visible-feed` additionally requires
+`--cloud-allow-full-visible-feed`.
 
 ## Source Defaults
 
@@ -169,6 +203,8 @@ README.md
 scripts/
   plutus_wire_tick.py
   plutus_wire_setup.py
+  plutus_wire_process.py
+  plutus_wire_cloud_handoff.py
   plutus_wire_db_status.py
   install_opencli_adapters.py
   install_openclaw_cron.py

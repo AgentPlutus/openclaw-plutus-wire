@@ -34,11 +34,15 @@ developer affordances; the product runtime is OpenClaw plus OpenCLI.
    `--enable ai`, `--enable bookmarks`, or `--likes-handle <handle> --enable likes`.
 5. Run `scripts/plutus_wire_tick.py --dry-run` before installing cron.
 6. Use `scripts/plutus_wire_tick.py --execute-adapters` for a live local ingest
-   smoke; then inspect `scripts/plutus_wire_db_status.py`.
+   smoke; add `--process` to build review cards, then inspect
+   `scripts/plutus_wire_db_status.py`.
 7. Use `scripts/install_openclaw_cron.py` to print the planned OpenClaw cron.
 8. Only run `scripts/install_openclaw_cron.py --apply` when the user explicitly
    asks to install the cron job.
-9. Review local output before enabling any cloud handoff.
+9. Review local output with `scripts/serve_review.py` before enabling any cloud
+   handoff.
+10. Use `scripts/plutus_wire_setup.py --cloud-enable --cloud-mode redacted-daily
+    --cloud-endpoint <url>` only when the user explicitly wants server handoff.
 
 ## References
 
@@ -55,9 +59,19 @@ signals, translate when configured, and produce reviewable cards. Do not import
 Agent Plutus macro-writer rules as default behavior until the backfill has been
 reviewed and the rules are extracted into a stable public contract.
 
+Run `scripts/plutus_wire_process.py` or `scripts/plutus_wire_tick.py --process`
+to write `review/latest-package.json` and `review/latest-cards.json`.
+
 ## Cron Stability
 
 Live ticks run health preflight by default. Treat `network_unavailable`,
 `auth_required`, `captcha_or_challenge`, `rate_limited`, `adapter_error`, and
 `skipped_backoff` as recoverable runtime states. Keep OpenClaw cron short and
 repeatable; do not add a long-lived ingest daemon.
+
+## Cloud Handoff
+
+Cloud handoff is opt-in. Build redacted packages with
+`scripts/plutus_wire_cloud_handoff.py`; upload only with `--apply` after cloud
+config has an endpoint and non-`off` mode. `full-visible-feed` requires
+`--cloud-allow-full-visible-feed`.

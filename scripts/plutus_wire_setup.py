@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from lib.config import (
+    apply_cloud_overrides,
     apply_home_tabs,
     apply_source_overrides,
     load_config,
@@ -27,6 +28,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--enable", action="append", help="Enable source name or comma-separated names.")
     parser.add_argument("--disable", action="append", help="Disable source name or comma-separated names.")
     parser.add_argument("--likes-handle", help="X handle to use when likes is enabled.")
+    parser.add_argument("--cloud-enable", action="store_true", help="Enable opt-in cloud handoff.")
+    parser.add_argument("--cloud-disable", action="store_true", help="Disable cloud handoff.")
+    parser.add_argument(
+        "--cloud-mode",
+        choices=["off", "manifest-only", "redacted-daily", "full-visible-feed"],
+        help="Cloud sync mode.",
+    )
+    parser.add_argument("--cloud-endpoint", help="Visible server endpoint for cloud handoff.")
+    parser.add_argument(
+        "--cloud-allow-full-visible-feed",
+        action="store_true",
+        help="Confirm full-visible-feed may include visible public post text.",
+    )
+    parser.add_argument(
+        "--cloud-revoke-full-visible-feed",
+        action="store_true",
+        help="Remove full-visible-feed confirmation.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Print config without writing it.")
     return parser.parse_args()
 
@@ -80,6 +99,20 @@ def main() -> int:
         enable=args.enable,
         disable=args.disable,
         likes_handle=args.likes_handle,
+    )
+    config = apply_cloud_overrides(
+        config,
+        enable=args.cloud_enable,
+        disable=args.cloud_disable,
+        mode=args.cloud_mode,
+        endpoint=args.cloud_endpoint,
+        allow_full_visible_feed=(
+            True
+            if args.cloud_allow_full_visible_feed
+            else False
+            if args.cloud_revoke_full_visible_feed
+            else None
+        ),
     )
 
     if args.dry_run:

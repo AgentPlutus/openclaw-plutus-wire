@@ -35,16 +35,64 @@ function sourceCard(name, entry) {
   return node;
 }
 
+function reviewCard(card) {
+  const node = document.createElement("article");
+  node.className = "brief-card";
+
+  const header = document.createElement("div");
+  header.className = "card-header";
+  const title = document.createElement("h3");
+  title.textContent = card.title || "Untitled signal";
+  const score = document.createElement("span");
+  score.className = "score";
+  score.textContent = `Score ${card.score || 0}`;
+  header.append(title, score);
+
+  const summary = document.createElement("p");
+  summary.textContent = card.summary || "No summary available.";
+
+  const why = document.createElement("p");
+  why.className = "meta";
+  why.textContent = card.why_it_matters || "";
+
+  const provenance = document.createElement("div");
+  provenance.className = "provenance";
+  for (const item of card.source_provenance || []) {
+    const pill = document.createElement("span");
+    pill.className = "pill";
+    pill.textContent = `${item.source} · ${item.sighting_count}`;
+    provenance.append(pill);
+  }
+
+  const evidence = document.createElement("div");
+  evidence.className = "evidence";
+  for (const item of (card.evidence || []).slice(0, 3)) {
+    const row = document.createElement("a");
+    row.href = item.url || "#";
+    row.target = "_blank";
+    row.rel = "noreferrer";
+    row.textContent = `${item.author || "unknown"} · ${item.posted_at || "unknown"}`;
+    evidence.append(row);
+  }
+
+  node.append(header, summary, why, provenance, evidence);
+  return node;
+}
+
 async function main() {
   const config = await readJson("/data/config.json");
   const manifest = await readJson("/data/latest-manifest.json");
   const dbStatus = await readJson("/data/db-status.json");
+  const cards = await readJson("/data/latest-cards.json");
+  const cloud = await readJson("/data/latest-cloud-manifest.json");
 
   const status = document.getElementById("runtime-status");
   const updatedAt = document.getElementById("updated-at");
   const sources = document.getElementById("sources");
   const lastRun = document.getElementById("last-run");
   const dbStatusNode = document.getElementById("db-status");
+  const cardsNode = document.getElementById("cards");
+  const cloudNode = document.getElementById("cloud-status");
 
   if (config.version) {
     status.textContent = "Local config loaded";
@@ -66,9 +114,21 @@ async function main() {
   }
 
   if (dbStatus.counts) {
-    dbStatusNode.textContent = `posts ${dbStatus.counts.posts}, sightings ${dbStatus.counts.sightings}, checkpoints ${dbStatus.counts.checkpoints}`;
+    dbStatusNode.textContent = `posts ${dbStatus.counts.posts}, sightings ${dbStatus.counts.sightings}, checkpoints ${dbStatus.counts.checkpoints}, runtime ${dbStatus.counts.source_runtime || 0}`;
   } else {
     dbStatusNode.textContent = "No SQLite status loaded yet.";
+  }
+
+  if (cards.cards && cards.cards.length) {
+    cardsNode.replaceChildren(...cards.cards.map(reviewCard));
+  } else {
+    cardsNode.textContent = "No review cards yet. Run scripts/plutus_wire_process.py after an ingest.";
+  }
+
+  if (cloud.manifest_id) {
+    cloudNode.textContent = `${cloud.mode}: ${cloud.upload_status} · ${cloud.manifest_id}`;
+  } else {
+    cloudNode.textContent = "Cloud handoff is off unless explicitly enabled.";
   }
 }
 

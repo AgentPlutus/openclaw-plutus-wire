@@ -43,6 +43,7 @@ def default_config() -> dict[str, Any]:
             "enabled": False,
             "mode": "off",
             "endpoint": None,
+            "allow_full_visible_feed": False,
         },
     }
 
@@ -121,6 +122,37 @@ def apply_source_overrides(
     return config
 
 
+def apply_cloud_overrides(
+    config: dict[str, Any],
+    *,
+    enable: bool = False,
+    disable: bool = False,
+    mode: str | None = None,
+    endpoint: str | None = None,
+    allow_full_visible_feed: bool | None = None,
+) -> dict[str, Any]:
+    config = merge_with_defaults(config)
+    cloud = config["cloud_sync"]
+    if disable:
+        cloud["enabled"] = False
+        cloud["mode"] = "off"
+        cloud["endpoint"] = None
+        cloud["allow_full_visible_feed"] = False
+    if endpoint is not None:
+        cloud["endpoint"] = endpoint.strip() or None
+    if mode is not None:
+        cloud["mode"] = mode
+    if allow_full_visible_feed is not None:
+        cloud["allow_full_visible_feed"] = allow_full_visible_feed
+    if enable:
+        cloud["enabled"] = True
+        if cloud.get("mode") == "off":
+            cloud["mode"] = "redacted-daily"
+    config["updated_at"] = utc_now()
+    validate_config(config)
+    return config
+
+
 def enabled_source_names(config: dict[str, Any]) -> list[str]:
     config = merge_with_defaults(config)
     enabled: list[str] = []
@@ -143,6 +175,18 @@ def validate_config(config: dict[str, Any]) -> None:
             raise ValueError(f"{name} is detection-only and cannot be enabled")
         if entry.get("enabled") and source.requires_handle and not entry.get("handle"):
             raise ValueError(f"{name} requires a handle before it can be enabled")
+    cloud = config.get("cloud_sync") or {}
+    mode = cloud.get("mode") or "off"
+    if mode not in {"off", "manifest-only", "redacted-daily", "full-visible-feed"}:
+        raise ValueError(f"unknown cloud sync mode: {mode}")
+    if cloud.get("enabled") and mode == "off":
+        raise ValueError("cloud sync cannot be enabled with mode=off")
+    if not cloud.get("enabled") and mode != "off":
+        raise ValueError("cloud sync mode must be off when disabled")
+    if cloud.get("enabled") and not cloud.get("endpoint"):
+        raise ValueError("cloud sync endpoint is required when enabled")
+    if mode == "full-visible-feed" and not cloud.get("allow_full_visible_feed"):
+        raise ValueError("full-visible-feed requires explicit confirmation")
 
 
 def save_config(state_dir: Path, config: dict[str, Any]) -> Path:

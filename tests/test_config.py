@@ -2,6 +2,7 @@ import pytest
 
 from lib.config import (
     apply_home_tabs,
+    apply_cloud_overrides,
     apply_source_overrides,
     default_config,
     enabled_source_names,
@@ -50,3 +51,29 @@ def test_source_config_hash_changes_with_sources():
     config = default_config()
     changed = apply_source_overrides(default_config(), enable=["bookmarks"])
     assert source_config_hash(config) != source_config_hash(changed)
+
+
+def test_cloud_sync_requires_explicit_endpoint():
+    with pytest.raises(ValueError):
+        apply_cloud_overrides(default_config(), enable=True)
+
+
+def test_cloud_sync_redacted_daily_config():
+    config = apply_cloud_overrides(
+        default_config(),
+        enable=True,
+        mode="redacted-daily",
+        endpoint="https://example.invalid/plutus-wire",
+    )
+    assert config["cloud_sync"]["enabled"] is True
+    assert config["cloud_sync"]["mode"] == "redacted-daily"
+
+
+def test_full_visible_feed_requires_confirmation():
+    with pytest.raises(ValueError):
+        apply_cloud_overrides(
+            default_config(),
+            enable=True,
+            mode="full-visible-feed",
+            endpoint="https://example.invalid/plutus-wire",
+        )

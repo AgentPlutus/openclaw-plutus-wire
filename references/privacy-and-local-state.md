@@ -57,6 +57,10 @@ Runtime failure records such as `source_runtime.last_error` must not contain
 cookies, tokens, browser profile paths, or gateway credentials. Keep errors
 short and operational.
 
+Review artifacts under `review/` are local by default. They may include derived
+summaries plus evidence text from visible posts. Cloud handoff must pass them
+through the redaction layer before writing a package intended for upload.
+
 ## Derived Artifacts
 
 Derived artifacts should keep source provenance while reducing raw exposure:
@@ -69,3 +73,7 @@ Derived artifacts should keep source provenance while reducing raw exposure:
 - normalized text
 - derived card text
 - processing status
+
+Cloud packages must replace local paths with `[local-path]`, replace secret
+fields with `[redacted]`, and remove evidence `text` unless
+`full-visible-feed` has been explicitly confirmed.
