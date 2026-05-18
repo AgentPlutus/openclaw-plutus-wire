@@ -2,6 +2,8 @@
 
 Tap your own timeline. Break the algorithmic cage.
 
+[中文介绍](README.zh-CN.md)
+
 Plutus Wire is an OpenClaw skill for turning your own X timeline into a local
 outside intelligence wire. It uses OpenCLI as a browser bridge, reads pages
 visible to your logged-in browser session, stores artifacts locally, and builds
@@ -62,36 +64,56 @@ redaction filter and write a user-visible manifest before leaving the machine.
 
 ## Dependencies
 
-Install OpenClaw and OpenCLI first.
+Install OpenCLI first. Install OpenClaw when you want scheduled cron runs.
 
 ```bash
 npm install -g @jackwener/opencli
-openclaw --help
 opencli --help
+# Optional, for scheduled cron runs:
+openclaw --help
 ```
 
 OpenCLI is credited in `NOTICE`. Plutus Wire should send upstream issues or pull
 requests to OpenCLI when it needs browser bridge changes instead of carrying a
 private fork.
 
-## Planned Install Flow
+## Quickstart
 
-During v0.1 development:
+Plutus Wire ships its OpenCLI adapters in this repository under
+`opencli-clis/plutus-wire/`. The one-command installer copies those adapters
+into `~/.opencli/clis/plutus-wire`, validates them, detects available X home
+tabs, writes local config, and runs a dry-run manifest.
 
 ```bash
 git clone https://github.com/AgentPlutus/openclaw-plutus-wire.git
 cd openclaw-plutus-wire
-python3 scripts/install_opencli_adapters.py
-python3 scripts/plutus_wire_setup.py --detect-home-tabs
-python3 scripts/plutus_wire_tick.py --dry-run
-python3 scripts/plutus_wire_tick.py --execute-adapters --process
-python3 scripts/plutus_wire_db_status.py
-python3 scripts/install_openclaw_cron.py --every 5m
+./install.sh
 ```
 
-When the OpenClaw skill is ready, installation should copy or link this folder
-into the user's OpenClaw workspace skills directory and then create an OpenClaw
-cron job through `scripts/install_openclaw_cron.py --apply`.
+To install and immediately run one local ingest plus processor smoke:
+
+```bash
+./install.sh --run-now
+```
+
+Then open the local review page:
+
+```bash
+python3 scripts/serve_review.py
+```
+
+Manual flow:
+
+```bash
+python3 scripts/install_opencli_adapters.py --apply --force
+opencli validate plutus-wire
+python3 scripts/plutus_wire_setup.py --detect-home-tabs
+python3 scripts/plutus_wire_tick.py --execute-adapters --process
+python3 scripts/plutus_wire_db_status.py
+```
+
+For scheduled OpenClaw runs, first verify `./install.sh --run-now`, then create
+an OpenClaw cron job through `scripts/install_openclaw_cron.py --apply`.
 
 To install adapters into OpenCLI during development:
 
@@ -200,7 +222,10 @@ default sources.
 ```text
 SKILL.md
 README.md
+README.zh-CN.md
+install.sh
 scripts/
+  plutus_wire_install.py
   plutus_wire_tick.py
   plutus_wire_setup.py
   plutus_wire_process.py
