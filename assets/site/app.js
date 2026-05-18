@@ -38,11 +38,13 @@ function sourceCard(name, entry) {
 async function main() {
   const config = await readJson("/data/config.json");
   const manifest = await readJson("/data/latest-manifest.json");
+  const dbStatus = await readJson("/data/db-status.json");
 
   const status = document.getElementById("runtime-status");
   const updatedAt = document.getElementById("updated-at");
   const sources = document.getElementById("sources");
   const lastRun = document.getElementById("last-run");
+  const dbStatusNode = document.getElementById("db-status");
 
   if (config.version) {
     status.textContent = "Local config loaded";
@@ -61,6 +63,12 @@ async function main() {
     lastRun.textContent = `${manifest.run_id}: ${ok}/${(manifest.sources || []).length} sources ok`;
   } else {
     lastRun.textContent = "No run manifest loaded yet.";
+  }
+
+  if (dbStatus.counts) {
+    dbStatusNode.textContent = `posts ${dbStatus.counts.posts}, sightings ${dbStatus.counts.sightings}, checkpoints ${dbStatus.counts.checkpoints}`;
+  } else {
+    dbStatusNode.textContent = "No SQLite status loaded yet.";
   }
 }
 

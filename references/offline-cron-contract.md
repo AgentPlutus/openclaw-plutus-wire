@@ -13,6 +13,26 @@ OpenClaw cron.
 - Raw artifact first, database ingest second, processing third.
 - Processor failure must not block the next ingest run.
 
+## Local Store
+
+Each successful adapter artifact should be ingested into:
+
+```text
+~/.openclaw/state/plutus-wire/db/plutus_wire.sqlite
+```
+
+The store should maintain:
+
+- `runs`
+- `raw_artifacts`
+- `posts`
+- `sightings`
+- `retweet_events`
+- `checkpoints`
+
+Checkpoint updates are source-local. A successful Following run should update
+only the Following checkpoint, even if another optional source fails.
+
 ## Recoverable States
 
 These states should be recorded without treating the whole job as broken:

@@ -3,6 +3,9 @@
 `processor_v0` should be deterministic and explainable enough for users to
 trust before any heavier server or model workflow is added.
 
+Processor inputs should come from the SQLite local store, not by rescanning
+raw JSON every time.
+
 ## v0.1 Tasks
 
 - Normalize raw source records.

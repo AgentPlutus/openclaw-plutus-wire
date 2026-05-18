@@ -15,6 +15,7 @@ from lib.config import (
     source_config_hash,
     source_handle,
 )
+from lib.local_store import connect_db, ingest_raw_artifact, record_run
 from lib.opencli_call import find_opencli, opencli_version, run_opencli_json
 from lib.source_registry import normalize_sources, opencli_args_for_source, source_by_name
 from lib.store import DEFAULT_STATE_DIR, ensure_state_dirs, write_json
@@ -73,6 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--handle", help="X handle for sources that require it, such as likes.")
     parser.add_argument("--dry-run", action="store_true", help="Write a manifest without calling adapters.")
     parser.add_argument("--execute-adapters", action="store_true", help="Call OpenCLI adapters and write raw JSON.")
+    parser.add_argument("--no-ingest-db", action="store_true", help="Do not ingest raw adapter output into SQLite.")
     return parser.parse_args()
 
 
@@ -105,6 +107,10 @@ def main() -> int:
         )
         run_path = state_dir / "runs" / f"{manifest['run_id']}.manifest.json"
         raw_dir = state_dir / "raw" / manifest["run_id"]
+        write_json(run_path, manifest)
+        conn = None if args.no_ingest_db else connect_db(state_dir)
+        if conn is not None:
+            record_run(conn, manifest, run_path)
         if args.execute_adapters and not args.dry_run:
             for source_entry in manifest["sources"]:
                 name = source_entry["name"]
@@ -118,9 +124,27 @@ def main() -> int:
                 source_entry["raw_path"] = str(output_path)
                 source_entry["status"] = "ok" if rc == 0 else "adapter_error"
                 source_entry["returncode"] = rc
+                if conn is not None:
+                    ingest_result = ingest_raw_artifact(
+                        conn,
+                        run_id=manifest["run_id"],
+                        source=name,
+                        path=output_path,
+                        status=source_entry["status"],
+                        returncode=rc,
+                    )
+                    source_entry["ingest_status"] = ingest_result["status"]
+                    source_entry["post_count"] = ingest_result.get("post_count", 0)
+                    if ingest_result.get("checkpoint"):
+                        source_entry["checkpoint"] = ingest_result["checkpoint"]
+                    if ingest_result.get("error"):
+                        source_entry["ingest_error"] = ingest_result["error"]
         elif not args.dry_run:
             manifest["note"] = "adapter execution requires --execute-adapters in M1"
         write_json(run_path, manifest)
+        if conn is not None:
+            record_run(conn, manifest, run_path)
+            conn.close()
         print(f"plutus-wire: wrote {run_path}")
         if not args.execute_adapters:
             print("plutus-wire: adapter execution skipped")

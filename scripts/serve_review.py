@@ -9,6 +9,7 @@ import json
 import socketserver
 from pathlib import Path
 
+from lib.local_store import connect_db, store_summary
 from lib.store import DEFAULT_STATE_DIR
 
 
@@ -31,6 +32,13 @@ def make_handler(state_dir: Path):
                     self._serve_payload({})
                 else:
                     self._serve_json(latest)
+                return
+            if self.path == "/data/db-status.json":
+                conn = connect_db(state_dir)
+                try:
+                    self._serve_payload(store_summary(conn))
+                finally:
+                    conn.close()
                 return
             super().do_GET()
 

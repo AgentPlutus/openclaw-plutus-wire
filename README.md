@@ -22,6 +22,8 @@ This repository is in early scaffold state. The first working target is v0.1:
   bookmarks.
 - M2 local source configuration written to
   `~/.openclaw/state/plutus-wire/config.json`.
+- M3 SQLite local store with raw artifact ingest, post sightings, retweet
+  events, and per-source checkpoints.
 - Local-first cron runner.
 - Following and For You as default sources.
 - Detected home tabs, likes, and bookmarks as optional sources.
@@ -77,6 +79,8 @@ cd openclaw-plutus-wire
 python3 scripts/install_opencli_adapters.py
 python3 scripts/plutus_wire_setup.py --detect-home-tabs
 python3 scripts/plutus_wire_tick.py --dry-run
+python3 scripts/plutus_wire_tick.py --execute-adapters
+python3 scripts/plutus_wire_db_status.py
 ```
 
 When the OpenClaw skill is ready, installation should copy or link this folder
@@ -119,6 +123,12 @@ Serve the local review UI with:
 python3 scripts/serve_review.py
 ```
 
+The SQLite store lives at:
+
+```text
+~/.openclaw/state/plutus-wire/db/plutus_wire.sqlite
+```
+
 ## Source Defaults
 
 Default enabled sources:
@@ -144,6 +154,7 @@ README.md
 scripts/
   plutus_wire_tick.py
   plutus_wire_setup.py
+  plutus_wire_db_status.py
   install_opencli_adapters.py
   install_openclaw_cron.py
   uninstall_openclaw_cron.py

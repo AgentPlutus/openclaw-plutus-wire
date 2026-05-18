@@ -20,6 +20,12 @@ review/
 cloud/
 ```
 
+SQLite database:
+
+```text
+~/.openclaw/state/plutus-wire/db/plutus_wire.sqlite
+```
+
 Source setup writes the main config at:
 
 ```text
@@ -45,6 +51,7 @@ The review UI reads a mirrored copy from:
 
 Raw artifacts may contain timeline text and public profile metadata visible to
 the logged-in user. They must stay local by default and must not be committed.
+The SQLite store is also local state and must not be committed.
 
 ## Derived Artifacts
 
