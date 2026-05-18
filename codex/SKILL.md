@@ -3,7 +3,7 @@ name: plutus-wire-dev
 description: >-
   Develop and maintain the Plutus Wire OpenClaw skill, including its OpenCLI
   adapters, local-first cron runner, privacy contracts, review UI, and optional
-  cloud handoff. Use for repository work on openclaw-plutus-wire.
+  cloud handoff. Use for repository work on Plutus Wire.
 ---
 
 # Plutus Wire Dev

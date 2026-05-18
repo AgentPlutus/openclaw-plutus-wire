@@ -92,8 +92,8 @@ into `~/.opencli/clis/plutus-wire`, validates them, detects available X home
 tabs, writes local config, and runs a dry-run manifest.
 
 ```bash
-git clone https://github.com/AgentPlutus/openclaw-plutus-wire.git
-cd openclaw-plutus-wire
+git clone https://github.com/AgentPlutus/plutus-wire.git
+cd plutus-wire
 ./install.sh
 ```
 
@@ -298,8 +298,8 @@ Plutus Wire 是一个 OpenClaw-first 的本地 skill。它通过 OpenCLI 复用�
 
 ```bash
 npm install -g @jackwener/opencli
-git clone https://github.com/AgentPlutus/openclaw-plutus-wire.git
-cd openclaw-plutus-wire
+git clone https://github.com/AgentPlutus/plutus-wire.git
+cd plutus-wire
 ./install.sh
 ```
 
